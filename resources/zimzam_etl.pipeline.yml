@@ -3,7 +3,7 @@
 resources:
   pipelines:
     zimzam_etl:
-      name: zimzam_etl
+      name: "[${bundle.target}] zimzam_etl"  # shared workspace: names must be target-unique
       catalog: ${var.catalog}
       schema: ${var.schema}
       serverless: true

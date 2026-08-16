@@ -3,7 +3,7 @@
 resources:
   jobs:
     sample_job:
-      name: sample_job
+      name: "[${bundle.target}] sample_job"
 
       trigger:
         pause_status: PAUSED  # test rig: no scheduled runs across 3 shared targets
