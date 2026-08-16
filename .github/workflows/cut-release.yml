@@ -39,4 +39,6 @@ jobs:
           done
           git tag "$t" "$sha"
           git push origin "$t"
+          # GITHUB_TOKEN pushes don't fire workflows: dispatch release on the tag explicitly
+          gh workflow run release.yml --ref "$t"
           echo "::notice::released $t = $sha"

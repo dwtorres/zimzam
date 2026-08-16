@@ -1,7 +1,8 @@
 name: release
 on:
   push:
-    tags: ['v*.*.*', 'v*.*.*.*']
+    tags: ['v*.*.*', 'v*.*.*.*']    # human-pushed tags trigger directly
+  workflow_dispatch: {}              # cut-release dispatches on the tag ref (GITHUB_TOKEN pushes don't trigger workflows)
 
 permissions:
   id-token: write
