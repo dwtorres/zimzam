@@ -5,6 +5,7 @@ on:
 permissions:
   contents: write
   deployments: read
+  actions: write    # dispatch release.yml on the new tag
 
 jobs:
   cut:
