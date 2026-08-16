@@ -1,0 +1,46 @@
+name: main
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: main-pipeline
+  cancel-in-progress: false
+
+jobs:
+  devtest:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      target: devtest
+      expect_catalog: zimzam_devtest
+      ref: ${{ github.sha }}
+
+  integration:
+    needs: devtest
+    runs-on: ubuntu-latest
+    environment: devtest
+    env:
+      # SANDBOX ONLY: Free Edition has no account plane -> no OIDC federation.
+      # Org rollout restores: DATABRICKS_AUTH_TYPE: github-oidc + DATABRICKS_CLIENT_ID var.
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_SERVERLESS_COMPUTE_ID: auto
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --group dev
+      - run: uv run pytest tests/integration -m integration
+  qa:
+    needs: integration
+    uses: ./.github/workflows/deploy.yml
+    with:
+      target: qa
+      expect_catalog: zimzam_qa
+      ref: ${{ github.sha }}
+      run_job: workspace_parity_smoke

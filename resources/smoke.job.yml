@@ -1,0 +1,20 @@
+# Workspace parity smoke: proves this workspace runs our code for this target.
+resources:
+  jobs:
+    workspace_parity_smoke:
+      name: "[${bundle.target}] zimzam workspace parity smoke"
+      tasks:
+        - task_key: smoke
+          environment_key: default
+          python_wheel_task:
+            package_name: zimzam
+            entry_point: smoke
+            parameters: ["--catalog", "${var.catalog}"]
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl
+      tags:
+        bundle_target: ${bundle.target}

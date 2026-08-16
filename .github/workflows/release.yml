@@ -1,0 +1,31 @@
+name: release
+on:
+  push:
+    tags: ['v*.*.*', 'v*.*.*.*']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: tag must be an ancestor of main (went through devtest + qa)
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::tag $GITHUB_REF_NAME points at a commit not on main"
+            exit 1
+          fi
+
+  prod:
+    needs: guard
+    uses: ./.github/workflows/deploy.yml
+    with:
+      target: prod
+      expect_catalog: zimzam_prod
+      ref: ${{ github.ref_name }}

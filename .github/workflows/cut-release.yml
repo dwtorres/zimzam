@@ -1,0 +1,42 @@
+name: cut-release
+on:
+  workflow_dispatch: {}    # one button, zero inputs
+
+permissions:
+  contents: write
+  deployments: read
+
+jobs:
+  cut:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: tag the commit currently deployed to qa
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # latest qa deployment whose most recent status is success:
+          # the thing validated is the thing released, even if main moved during UAT.
+          sha=""
+          for id_sha in $(gh api "repos/${GITHUB_REPOSITORY}/deployments?environment=qa&per_page=10" --jq '.[] | "\(.id):\(.sha)"'); do
+            id="${id_sha%%:*}"
+            state=$(gh api "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses?per_page=1" --jq '.[0].state // "none"')
+            if [ "$state" = "success" ]; then
+              sha="${id_sha#*:}"
+              break
+            fi
+          done
+          if [ -z "$sha" ]; then
+            echo "::error::no successful qa deployment found; has main.yml run green?"
+            exit 1
+          fi
+          tag="v$(date -u +%Y.%m.%d)"
+          t="$tag"; n=2
+          while git rev-parse -q --verify "refs/tags/$t" > /dev/null; do
+            t="${tag}.${n}"; n=$((n+1))
+          done
+          git tag "$t" "$sha"
+          git push origin "$t"
+          echo "::notice::released $t = $sha"
