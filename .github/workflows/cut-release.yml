@@ -23,7 +23,8 @@ jobs:
           for id_sha in $(gh api "repos/${GITHUB_REPOSITORY}/deployments?environment=qa&per_page=10" --jq '.[] | "\(.id):\(.sha)"'); do
             id="${id_sha%%:*}"
             state=$(gh api "repos/${GITHUB_REPOSITORY}/deployments/${id}/statuses?per_page=1" --jq '.[0].state // "none"')
-            if [ "$state" = "success" ]; then
+            # inactive = superseded success (GitHub auto-inactivates prior successful deployments)
+            if [ "$state" = "success" ] || [ "$state" = "inactive" ]; then
               sha="${id_sha#*:}"
               break
             fi
