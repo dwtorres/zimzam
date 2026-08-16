@@ -25,6 +25,7 @@ jobs:
   prod:
     needs: guard
     uses: ./.github/workflows/deploy.yml
+    secrets: inherit
     with:
       target: prod
       expect_catalog: zimzam_prod

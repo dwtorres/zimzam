@@ -14,6 +14,7 @@ concurrency:
 jobs:
   devtest:
     uses: ./.github/workflows/deploy.yml
+    secrets: inherit
     with:
       target: devtest
       expect_catalog: zimzam_devtest
@@ -39,6 +40,7 @@ jobs:
   qa:
     needs: integration
     uses: ./.github/workflows/deploy.yml
+    secrets: inherit
     with:
       target: qa
       expect_catalog: zimzam_qa
