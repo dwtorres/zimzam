@@ -17,11 +17,14 @@ dev = [
     "ruff",
     "databricks-dlt",
     "databricks-connect>=15.4,<15.5",
+    "mypy>=1.14",
+    "pytest-xdist>=3",
     "ipykernel",
 ]
 
 [project.scripts]
 main = "zimzam.main:main"
+smoke = "zimzam.smoke:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -29,3 +32,19 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["F821"]                 # notebook globals: spark, dbutils, dlt magic
+"src/zimzam_etl/**" = ["F821"]       # DLT files use runtime-injected spark
+
+[tool.mypy]
+files = ["src/zimzam"]
+
+[[tool.mypy.overrides]]
+module = ["pyspark.*", "databricks.*", "dlt.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]  # integration collected only when targeted explicitly
+markers = ["integration: requires a Databricks workspace"]
+addopts = "-m 'not integration'"

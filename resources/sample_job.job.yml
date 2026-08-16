@@ -6,6 +6,7 @@ resources:
       name: sample_job
 
       trigger:
+        pause_status: PAUSED  # test rig: no scheduled runs across 3 shared targets
         # Run this job every day, exactly one day from the last run; see https://docs.databricks.com/api/workspace/jobs/create#trigger
         periodic:
           interval: 1

@@ -1,6 +1,8 @@
-from databricks.sdk.runtime import spark
-from pyspark.sql import DataFrame
+import pytest
+
 from zimzam import taxis
+
+pytestmark = pytest.mark.integration
 
 
 def test_find_all_taxis():

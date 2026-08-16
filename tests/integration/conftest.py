@@ -1,17 +1,19 @@
 """This file configures pytest, initializes Databricks Connect, and provides fixtures for Spark and loading test data."""
 
-import os, sys, pathlib
+import os
+import pathlib
+import sys
 from contextlib import contextmanager
 
-
 try:
+    import csv
+    import json
+    import os
+
+    import pytest
     from databricks.connect import DatabricksSession
     from databricks.sdk import WorkspaceClient
     from pyspark.sql import SparkSession
-    import pytest
-    import json
-    import csv
-    import os
 except ImportError:
     raise ImportError(
         "Test dependencies not found.\n\nRun tests using 'uv run pytest'. See http://docs.astral.sh/uv to learn more about uv."
@@ -81,7 +83,10 @@ def _allow_stderr_output(config: pytest.Config):
 
 
 def pytest_configure(config: pytest.Config):
-    """Configure pytest session."""
+    """Configure pytest session. Connect only when integration tests are selected."""
+    markexpr = config.getoption("-m", default="") or ""
+    if "not integration" in markexpr or markexpr == "":
+        return
     with _allow_stderr_output(config):
         _enable_fallback_compute()
 

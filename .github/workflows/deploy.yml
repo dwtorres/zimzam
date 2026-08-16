@@ -1,0 +1,52 @@
+name: deploy
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      expect_catalog:
+        required: true
+        type: string
+      ref:
+        required: true
+        type: string
+      run_job:
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    concurrency:
+      group: deploy-${{ inputs.target }}
+      cancel-in-progress: false
+    env:
+      DATABRICKS_AUTH_TYPE: github-oidc
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: databricks/setup-cli@main
+      - name: assert resolved catalog == ${{ inputs.expect_catalog }}
+        run: |
+          got=$(databricks bundle validate -o json | jq -r '.variables.catalog | .value // .default // empty')
+          if [ "$got" != "${{ inputs.expect_catalog }}" ]; then
+            echo "::error::target ${{ inputs.target }} resolved catalog '$got', expected '${{ inputs.expect_catalog }}'"
+            exit 1
+          fi
+      - run: databricks bundle deploy --auto-approve
+      - if: inputs.run_job != ''
+        run: databricks bundle run ${{ inputs.run_job }}

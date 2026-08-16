@@ -1,0 +1,47 @@
+name: ci
+on:
+  pull_request:
+    branches: [main]
+  # merge_group: {}   # enable when the repo turns on merge queue
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --group dev
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run pytest -n auto --junitxml=junit.xml
+      - uses: databricks/setup-cli@main
+      - name: bundle config resolves + catalog pinned (all targets, offline)
+        env:
+          DATABRICKS_TOKEN: ci-offline-validate  # offline: exit code reflects auth, so assert on resolved JSON
+        run: |
+          set -u
+          declare -A want=( [devtest]=zimzam_devtest [qa]=zimzam_qa [prod]=zimzam_prod )
+          for t in devtest qa prod; do
+            databricks bundle validate -t "$t" -o json 2>/dev/null > "/tmp/$t.json" || true
+            got=$(jq -r '.variables.catalog | .value // .default // empty' "/tmp/$t.json")
+            if [ "$got" != "${want[$t]}" ]; then
+              echo "::error::target $t: catalog resolved to '$got', expected '${want[$t]}'"
+              exit 1
+            fi
+            echo "validate $t: ok (catalog=$got)"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit
+          path: junit.xml

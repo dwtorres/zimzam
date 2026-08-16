@@ -1,5 +1,6 @@
-# This is a Declarative Automation Bundle definition for zimzam.
-# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+# zimzam: two-lane CI/CD test bundle.
+# One bundle, four targets. dev = personal sandbox; devtest/qa/prod = the lanes.
+# Test rig note: all targets share one workspace (org design uses two); catalogs + root_path isolate.
 bundle:
   name: zimzam
   uuid: 0e110240-5c8a-4092-8de4-9bbdc9a14772
@@ -12,35 +13,54 @@ artifacts:
     type: whl
     build: uv build --wheel
 
-# Variable declarations. These variables are assigned in the dev/prod targets below.
 variables:
   catalog:
-    description: The catalog to use
+    description: UC catalog. Pinned per target; never pass --var catalog.
   schema:
     description: The schema to use
 
 targets:
   dev:
-    # The default target uses 'mode: development' to create a development copy.
-    # - Deployed resources get prefixed with '[dev my_user_name]'
-    # - Any job schedules and triggers are paused by default.
-    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
     mode: development
     default: true
     workspace:
       host: https://dbc-8e058692-373e.cloud.databricks.com
     variables:
-      catalog: default
+      catalog: zimzam_devtest
       schema: ${workspace.current_user.short_name}
+
+  devtest:
+    mode: production
+    workspace:
+      host: https://dbc-8e058692-373e.cloud.databricks.com
+      root_path: /Workspace/Shared/.bundle/zimzam/devtest
+    variables:
+      catalog: zimzam_devtest
+      schema: zimzam
+    permissions:
+      - user_name: verbena1@gmail.com
+        level: CAN_MANAGE
+
+  qa:
+    mode: production
+    workspace:
+      host: https://dbc-8e058692-373e.cloud.databricks.com
+      root_path: /Workspace/Shared/.bundle/zimzam/qa
+    variables:
+      catalog: zimzam_qa
+      schema: zimzam
+    permissions:
+      - user_name: verbena1@gmail.com
+        level: CAN_MANAGE
+
   prod:
     mode: production
     workspace:
       host: https://dbc-8e058692-373e.cloud.databricks.com
-      # We explicitly deploy to /Workspace/Users/verbena1@gmail.com to make sure we only have a single copy.
-      root_path: /Workspace/Users/verbena1@gmail.com/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Shared/.bundle/zimzam/prod
     variables:
-      catalog: default
-      schema: prod
+      catalog: zimzam_prod
+      schema: zimzam
     permissions:
       - user_name: verbena1@gmail.com
         level: CAN_MANAGE
