@@ -28,9 +28,10 @@ jobs:
       group: deploy-${{ inputs.target }}
       cancel-in-progress: false
     env:
-      DATABRICKS_AUTH_TYPE: github-oidc
+      # SANDBOX ONLY: Free Edition has no account plane -> no OIDC federation.
+      # Org rollout restores: DATABRICKS_AUTH_TYPE: github-oidc + DATABRICKS_CLIENT_ID var.
       DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
-      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
       DATABRICKS_BUNDLE_ENV: ${{ inputs.target }}
     steps:
       - uses: actions/checkout@v5
